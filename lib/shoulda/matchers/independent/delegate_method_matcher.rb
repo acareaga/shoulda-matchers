@@ -319,7 +319,11 @@ module Shoulda
         end
 
         def subject_has_delegate_object_reader_method?
-          subject.respond_to?(delegate_object_reader_method, true)
+          if delegate_object_reader_method.is_a?(Class)
+            true
+          else
+            subject.respond_to?(delegate_object_reader_method, true)
+          end
         end
 
         def ensure_delegate_object_has_been_specified!

@@ -203,33 +203,57 @@ describe Shoulda::Matchers::Independent::DelegateMethodMatcher do
   end
 
   context 'when the subject delegates correctly' do
-    before do
-      define_class('Mailman')
+    context 'when the delegate object is an instance' do
+      before do
+        define_class('Mailman')
 
-      define_class('PostOffice') do
-        def deliver_mail
-          mailman.deliver_mail
+        define_class('PostOffice') do
+          def initialize
+            @mailman = DelegateObject.new
+          end
+
+          def deliver_mail
+            mailman.deliver_mail
+          end
+
+          def mailman
+            @mailman
+          end
         end
+      end
 
-        def mailman
-          Mailman.new
+      it 'accepts' do
+        post_office = PostOffice.new
+        # post_office.deliver_mail === post_office.mailman.deliver_mail
+        # the Mailman instance inside of PostOffice should receive "deliver_mail"
+        expect(post_office).to delegate_method(:deliver_mail).to(:mailman)
+      end
+
+      context 'negating the matcher' do
+        it 'rejects with the correct failure message' do
+          post_office = PostOffice.new
+          message = 'Expected PostOffice not to delegate #deliver_mail to #mailman object, but it did'
+
+          expect {
+            expect(post_office).not_to delegate_method(:deliver_mail).to(:mailman)
+          }.to fail_with_message(message)
         end
       end
     end
 
-    it 'accepts' do
-      post_office = PostOffice.new
-      expect(post_office).to delegate_method(:deliver_mail).to(:mailman)
-    end
+    context 'when the delegate object is a class' do
+      before do
+        define_class('Mailman')
 
-    context 'negating the matcher' do
-      it 'rejects with the correct failure message' do
-        post_office = PostOffice.new
-        message = 'Expected PostOffice not to delegate #deliver_mail to #mailman object, but it did'
+        define_class('PostOffice') do
+          def self.deliver_mail
+            Mailman.deliver_mail
+          end
+        end
+      end
 
-        expect {
-          expect(post_office).not_to delegate_method(:deliver_mail).to(:mailman)
-        }.to fail_with_message(message)
+      it 'accepts' do
+        expect(PostOffice).to delegate_method(:deliver_mail).to(Mailman)
       end
     end
   end
